@@ -1,0 +1,10 @@
+playwright>=1.45
+python-dotenv>=1.0
+pandas>=2.2
+pyarrow>=16.0
+openpyxl>=3.1        # .xlsx exports
+keyring>=25.0        # OS keychain (macOS/Linux secret service)
+pyotp>=2.9           # only if the site uses TOTP MFA
+requests>=2.32        # Telegram Bot API calls
+influxdb-client>=1.50
+certifi>=2026.7

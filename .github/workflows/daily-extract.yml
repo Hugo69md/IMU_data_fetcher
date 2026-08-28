@@ -1,0 +1,28 @@
+name: Daily telemetry extract
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 00:00 UTC daily
+  workflow_dispatch: {}    # allow manual runs from the Actions tab
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install -r requirements.txt
+
+      - name: Run extraction
+        env:
+          INFLUX_URL: ${{ secrets.INFLUX_URL }}
+          INFLUX_ORG_ID: ${{ secrets.INFLUX_ORG_ID }}
+          INFLUX_TOKEN: ${{ secrets.INFLUX_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_NAME: ${{ secrets.TELEGRAM_BOT_NAME }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 main.py --raw --start=-24h

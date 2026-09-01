@@ -1,37 +1,32 @@
 name: Daily telemetry extract
-
 on:
   schedule:
-    - cron: "45 11 * * *"   # 11:45 UTC daily — see wait step below for why
+    - cron: "45 23 * * *"   # 23:45 UTC daily — see wait step below for why
   workflow_dispatch: {}      # allow manual runs from the Actions tab
-
 jobs:
   extract:
     runs-on: ubuntu-latest
     timeout-minutes: 60      # safety net in case queueing/wait misbehaves
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
       - run: pip install -r requirements.txt
-
-      - name: Wait until 12:00 UTC (skip if already past)
+      - name: Wait until 00:00 UTC (skip if already past)
         if: github.event_name == 'schedule'   # manual runs shouldn't wait at all
         run: |
           now=$(date -u +%s)
           sec_since_midnight=$(( now % 86400 ))
-          target=43200   # 12:00 UTC
-          if [ "$sec_since_midnight" -lt "$target" ]; then
-            wait=$(( target - sec_since_midnight ))
-            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — waiting ${wait}s until 12:00 UTC"
+          # >=12:00 UTC means today's 00:00 hasn't happened yet -> wait for it.
+          # <12:00 UTC means we're already past it (queueing delay) -> go now.
+          if [ "$sec_since_midnight" -ge 43200 ]; then
+            wait=$(( 86400 - sec_since_midnight ))
+            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — waiting ${wait}s until 00:00 UTC"
             sleep "$wait"
           else
-            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — already past 12:00 UTC, proceeding immediately"
+            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — already past 00:00 UTC, proceeding immediately"
           fi
-
       - name: Run extraction
         env:
           INFLUX_URL: ${{ secrets.INFLUX_URL }}
@@ -40,4 +35,4 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_BOT_NAME: ${{ secrets.TELEGRAM_BOT_NAME }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python3 main.py --raw --start=-24h
+        run: python3 main.py --raw --start=-48h

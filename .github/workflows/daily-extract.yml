@@ -2,7 +2,7 @@ name: Daily telemetry extract
 
 on:
   schedule:
-    - cron: "37 23 * * *"   # 23:37 UTC daily — see wait step below for why
+    - cron: "45 11 * * *"   # 11:45 UTC daily — see wait step below for why
   workflow_dispatch: {}      # allow manual runs from the Actions tab
 
 jobs:
@@ -18,19 +18,18 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Wait until 00:00 UTC (skip if already past)
+      - name: Wait until 12:00 UTC (skip if already past)
         if: github.event_name == 'schedule'   # manual runs shouldn't wait at all
         run: |
           now=$(date -u +%s)
           sec_since_midnight=$(( now % 86400 ))
-          # >=12:00 UTC means today's 00:00 hasn't happened yet -> wait for it.
-          # <12:00 UTC means we're already past it (queueing delay) -> go now.
-          if [ "$sec_since_midnight" -ge 43200 ]; then
-            wait=$(( 86400 - sec_since_midnight ))
-            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — waiting ${wait}s until 00:00 UTC"
+          target=43200   # 12:00 UTC
+          if [ "$sec_since_midnight" -lt "$target" ]; then
+            wait=$(( target - sec_since_midnight ))
+            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — waiting ${wait}s until 12:00 UTC"
             sleep "$wait"
           else
-            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — already past 00:00 UTC, proceeding immediately"
+            echo "Currently $(date -u -d @$now +%H:%M:%S) UTC — already past 12:00 UTC, proceeding immediately"
           fi
 
       - name: Run extraction
